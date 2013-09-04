@@ -25,7 +25,21 @@ namespace rush {
 			//
 			//TODO: Add the constructor code here
 			entryPtr = new Communcation(0);
+			pDataQueue = new CommandQueue(mainForm::formProcFunc);
 			//
+		}
+		static int formProcFunc(pIQueueNode ptr)
+		{
+			wchar_t* wstr = (wchar_t*)(ptr->getValue());
+			size_t len = wcslen(wstr);
+			array<wchar_t>^ arr = gcnew array<wchar_t>(len);
+			for(int i=0;i<len;i++)
+			{
+				arr[i] = wstr[i];
+			}
+			System::String^ str = gcnew System::String(arr);
+			int i=0;
+			return i;
 		}
 
 	protected:
@@ -42,6 +56,10 @@ namespace rush {
 			{
 				delete entryPtr;
 			}
+			if(nullptr!=pDataQueue)
+			{
+				delete pDataQueue;
+			}
 		}
 	private: System::Windows::Forms::Button^  button1;
 	private: System::Windows::Forms::TextBox^  textBoxSending;
@@ -49,6 +67,7 @@ namespace rush {
 	private: System::Windows::Forms::TextBox^  textBox2;
 	protected: 
 		pCommunication entryPtr;
+		CommandQueue* pDataQueue;
 	private: System::Windows::Forms::TextBox^  textBoxReceiving;
 	protected: 
 	private:
@@ -139,7 +158,7 @@ namespace rush {
 				 {
 					if(this->textBox2->Text->Length)
 					{
-						entryPtr->SendAsyncMessage(this->textBox2->Text);
+						entryPtr->SendAsyncMessage(this->textBox2->Text,(void*)(pDataQueue));
 						
 						this->textBoxSending->AppendText(this->textBox2->Text);
 						this->textBoxSending->AppendText("\n");

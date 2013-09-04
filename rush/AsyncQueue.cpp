@@ -4,8 +4,9 @@ QueueNodeBase::QueueNodeBase(void)
 {
 }
 
-QueueNodeBase::QueueNodeBase(int t)
+QueueNodeBase::QueueNodeBase(int t,void* ptr)
 {
+	header = ptr;
 	type = t;
 }
 
@@ -14,12 +15,34 @@ QueueNodeBase* QueueNodeBase::clone(void)
 	return nullptr;
 }
 
+AsyncQueueBase::AsyncQueueBase(int(__clrcall *pF)(pIQueueNode))
+{
+	innerSema = CreateSemaphore(nullptr,(LONG)(1),(LONG)1,nullptr);
+	procSema = CreateSemaphore(nullptr,(LONG)(0),(LONG)(INFINITE),nullptr);
+
+	pQueueProc = nullptr;
+	pClrQueueProc = pF;
+
+	queueType = false;
+
+	procHandle = CreateThread(nullptr,(DWORD)(NULL),(LPTHREAD_START_ROUTINE)(AsyncQueueBase::queueProcFunc),(void*)(this),(DWORD)(NULL),nullptr);
+
+	if(NULL==procHandle)
+	{
+		procHandle = nullptr;
+
+	}
+}
+
 AsyncQueueBase::AsyncQueueBase(int(*pF)(pIQueueNode))
 {
 	innerSema = CreateSemaphore(nullptr,(LONG)(1),(LONG)1,nullptr);
 	procSema = CreateSemaphore(nullptr,(LONG)(0),(LONG)(INFINITE),nullptr);
 
 	pQueueProc = pF;
+	pClrQueueProc = nullptr;
+
+	queueType = true;
 
 	procHandle = CreateThread(nullptr,(DWORD)(NULL),(LPTHREAD_START_ROUTINE)(AsyncQueueBase::queueProcFunc),(void*)(this),(DWORD)(NULL),nullptr);
 
@@ -40,10 +63,18 @@ void* AsyncQueueBase::queueProcFunc(void* ptr)
 		
 		pIQueueNode tmp = instance->Dequeue_Front();
 
-		if(nullptr!=(instance->pQueueProc) && tmp != nullptr)
+		if(tmp != nullptr)
 		{
-			int ret = (*(instance->pQueueProc))(tmp);
-			delete tmp;//delete the data after use;
+			if(instance->queueType && nullptr!=(instance->pQueueProc))
+			{
+				int ret = (*(instance->pQueueProc))(tmp);
+				delete tmp;//delete the data after use;
+			}
+			else if( !(instance->queueType) && nullptr!=(instance->pClrQueueProc))
+			{
+				int ret = (*(instance->pClrQueueProc))(tmp);
+				delete tmp;
+			}
 		}
 	}
 	ExitThread((DWORD)NULL);
@@ -175,7 +206,34 @@ int AsyncQueueBase::updateProcFunc(int(*pF)(pIQueueNode))
 
 	//pause queue proc thread to update new proc function
 	SuspendThread(procHandle);
+	queueType = true;
 	pQueueProc = pF;
+	ResumeThread(procHandle);
+
+	return AQ_SUCCESS;
+}
+
+int AsyncQueueBase::updateProcFunc(int(__clrcall *pF)(pIQueueNode))
+{
+	if(nullptr==procHandle)
+	{
+		procHandle = CreateThread(nullptr,(DWORD)(NULL),(LPTHREAD_START_ROUTINE)(AsyncQueueBase::queueProcFunc),(void*)(this),(DWORD)(NULL),nullptr);
+	}
+
+	if(NULL==procHandle || nullptr == procHandle)
+	{
+		return AQ_NULL_PROC_THREAD_ERROR;
+	}
+
+	if(NULL==pF || nullptr == pF)
+	{
+		return AQ_NULL_PROC_FUNC_ERROR;
+	}
+
+	//pause queue proc thread to update new proc function
+	SuspendThread(procHandle);
+	queueType = false;
+	pClrQueueProc = pF;
 	ResumeThread(procHandle);
 
 	return AQ_SUCCESS;

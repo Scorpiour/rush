@@ -6,7 +6,12 @@ CommModelBase::CommModelBase(int startupMode)
 	debugFlag = false;
 	mode = startupMode;
 
-	queuePtr = new CommandQueue(CommModelBase::dealer);
+	int (__cdecl *pF)(pIQueueNode);
+
+	pF = &(CommModelBase::dealer);
+
+	queuePtr = new CommandQueue(pF);
+	pformQueue = nullptr;
 }
 
 CommModelBase::~CommModelBase(void)
@@ -19,16 +24,15 @@ CommModelBase::~CommModelBase(void)
 
 int CommModelBase::dealer(pIQueueNode ptr)
 {
-	switch((int)(ptr->getValue()))
-	{
-	case 5:
-		int i=1;
-		break;
-	}
+	CommandQueue* qPtr = (CommandQueue*)(ptr->getHeader());
+	
+	qPtr->Enqueue_Back( *(AsyncMessage*)(ptr) );
+
+	int i=0;
 	return 0;
 }
 
-int CommModelBase::SendAsyncMessage(System::String^ s)
+int CommModelBase::SendAsyncMessage(System::String^ s,void* header)
 {
 	//Convert Managed String to Unmanaged wchar_t[]
 	int len = s->Length + 1;
@@ -41,7 +45,7 @@ int CommModelBase::SendAsyncMessage(System::String^ s)
 		str[i] = s[i];
 	}
 
-	AsyncMessage msg(str);
+	AsyncMessage msg(str,header);
 
 	queuePtr->Enqueue_Back(msg);
 
@@ -49,7 +53,7 @@ int CommModelBase::SendAsyncMessage(System::String^ s)
 	return 0;
 }
 
-AsyncMessage::AsyncMessage(wchar_t* ptr):IQueueNode(0)
+AsyncMessage::AsyncMessage(wchar_t* ptr,void* header):IQueueNode(0,header)
 {
 	size_t len = wcslen(ptr)+1;
 	wptr = new wchar_t[len];
@@ -68,13 +72,13 @@ AsyncMessage::~AsyncMessage()
 
 AsyncMessage* AsyncMessage::clone(void)
 {
-	AsyncMessage* tmp = new AsyncMessage(wptr);
+	AsyncMessage* tmp = new AsyncMessage(wptr,header);
 	return tmp;
 }
 
 void* AsyncMessage::getValue(void)const
 {
-	return (void*)(type + 5);
+	return (void*)(wptr);
 }
 
 const AsyncMessage& AsyncMessage::operator = (const AsyncMessage& R)

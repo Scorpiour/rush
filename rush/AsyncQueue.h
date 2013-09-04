@@ -24,12 +24,18 @@ typedef class QueueNodeBase
 {
 protected:
 	int type;
+	void* header;
 public:
 	QueueNodeBase(void);
-	QueueNodeBase(int);
+	QueueNodeBase(int,void*);
 	inline int getType(void)const
 	{
 		return type;
+	}
+
+	inline void* getHeader(void)const
+	{
+		return header;
 	}
 
 	virtual void* getValue(void)const = 0;
@@ -45,6 +51,7 @@ typedef class AsyncQueueBase
 {
 protected:
 	bool debugFlag;
+	bool queueType;	//false -> clrProcFunc; true -> cdecl ProcFunc
 	HANDLE innerSema;
 	HANDLE procSema;
 	HANDLE procHandle;
@@ -52,14 +59,17 @@ protected:
 	
 	//User defined queue proc func, will be call when queue is not empty; Message will be sent to this function to cope with;
 	int (*pQueueProc)(pIQueueNode);
+	int (__clrcall *pClrQueueProc)(pIQueueNode);
+
 
 	//Queue proc thread func, will keep Dequeue_Front and call procFuncPointer;
 	static void* __stdcall queueProcFunc(void*);
 
 
-	explicit AsyncQueueBase(const AsyncQueueBase&);	//not allow to copy
+	//explicit AsyncQueueBase(const AsyncQueueBase&);	//not allow to copy
 public:
 	explicit AsyncQueueBase(int(*)(pIQueueNode));
+	explicit AsyncQueueBase(int(__clrcall *)(pIQueueNode));
 	
 	virtual ~AsyncQueueBase(void);
 
@@ -73,6 +83,7 @@ public:
 	inline bool isInit(void)const;
 
 	int updateProcFunc(int(*)(pIQueueNode));
+	int updateProcFunc(int(__clrcall *)(pIQueueNode));
 
 	int Clear(void);
 }CommandQueue;

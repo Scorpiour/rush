@@ -13,7 +13,7 @@
 class AsyncMessage:public IQueueNode
 {
 public:
-	AsyncMessage(wchar_t*);
+	AsyncMessage(wchar_t*,void*);
 	~AsyncMessage();
 	wchar_t* wptr;
 
@@ -28,13 +28,14 @@ protected:
 	int mode;
 	bool debugFlag;
 	CommandQueue* queuePtr;
+	CommandQueue* pformQueue;
 public:
 	explicit CommModelBase(int);
 	virtual ~CommModelBase(void);
 
-	static int dealer(pIQueueNode);
+	static int __cdecl dealer(pIQueueNode);
 
-	int SendAsyncMessage(System::String^ s);
+	int SendAsyncMessage(System::String^ s,void* header);
 }Communcation,*pCommunication;
 
 
