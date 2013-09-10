@@ -25,8 +25,14 @@ AsyncQueueBase::AsyncQueueBase(int(__clrcall *pF)(pIQueueNode))
 
 	queueType = false;
 
-	procHandle = CreateThread(nullptr,(DWORD)(NULL),(LPTHREAD_START_ROUTINE)(AsyncQueueBase::queueProcFunc),(void*)(this),(DWORD)(NULL),nullptr);
-
+	if(pF!=nullptr)
+	{
+		procHandle = CreateThread(nullptr,(DWORD)(NULL),(LPTHREAD_START_ROUTINE)(AsyncQueueBase::queueProcFunc),(void*)(this),(DWORD)(NULL),nullptr);
+	}
+	else
+	{
+		procHandle = nullptr;
+	}
 	if(NULL==procHandle)
 	{
 		procHandle = nullptr;
@@ -44,8 +50,14 @@ AsyncQueueBase::AsyncQueueBase(int(*pF)(pIQueueNode))
 
 	queueType = true;
 
-	procHandle = CreateThread(nullptr,(DWORD)(NULL),(LPTHREAD_START_ROUTINE)(AsyncQueueBase::queueProcFunc),(void*)(this),(DWORD)(NULL),nullptr);
-
+	if(pF!=nullptr)
+	{
+		procHandle = CreateThread(nullptr,(DWORD)(NULL),(LPTHREAD_START_ROUTINE)(AsyncQueueBase::queueProcFunc),(void*)(this),(DWORD)(NULL),nullptr);
+	}
+	else
+	{
+		procHandle = nullptr;
+	}
 	if(NULL==procHandle)
 	{
 		procHandle = nullptr;

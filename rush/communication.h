@@ -8,7 +8,15 @@
 #include <winsock.h>
 #include <Windows.h>
 #include <cstdlib>
+#include <gcroot.h>
+#include <vcclr.h>
 #include "AsyncQueue.h"
+
+struct headerStruct
+{
+	void* ptr;
+	int thisptr;
+};
 
 class AsyncMessage:public IQueueNode
 {

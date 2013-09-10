@@ -11,6 +11,7 @@ namespace rush {
 	using namespace System::Windows::Forms;
 	using namespace System::Data;
 	using namespace System::Drawing;
+	using namespace System::Runtime::InteropServices;
 
 	/// <summary>
 	/// Summary for mainForm
@@ -25,27 +26,56 @@ namespace rush {
 			//
 			//TODO: Add the constructor code here
 			entryPtr = new Communcation(0);
-			pDataQueue = new CommandQueue(mainForm::formProcFunc);
+
+			pDataQueue = new CommandQueue(lookupCmdQueue);
 			//
 		}
-		static int formProcFunc(pIQueueNode ptr)
+
+		void updateThisPtr(int ptr)
 		{
-			wchar_t* wstr = (wchar_t*)(ptr->getValue());
-			size_t len = wcslen(wstr);
-			array<wchar_t>^ arr = gcnew array<wchar_t>(len);
-			for(int i=0;i<len;i++)
+			thisPtr = ptr;
+		}
+
+		//delegate void lookupCmdQueue(void);
+
+		static int lookupCmdQueue(pIQueueNode pMsg)
+		{
+			if(pMsg!=nullptr)
 			{
-				arr[i] = wstr[i];
+				AsyncMessage* msgPtr = (AsyncMessage*)(pMsg);
+				headerStruct* tmp = (headerStruct*)msgPtr->getHeader();
+
+				IntPtr formPtr(tmp->thisptr);
+				GCHandle target = GCHandle::FromIntPtr(formPtr);
+
+				wchar_t* wstr = (wchar_t*)(pMsg->getValue());
+				size_t len = wcslen(wstr);
+				array<wchar_t>^ arr = gcnew array<wchar_t>(len);
+				for(size_t i=0;i<len;i++)
+				{
+					arr[i] = wstr[i];
+				}
+				System::String^ str = gcnew System::String(arr);
+
+				mainForm^ me = (mainForm^)target.Target;
+				me->textBoxReceiving->AppendText(str);
+				me->textBoxReceiving->AppendText("\n");
+
+				return 0;
 			}
-			System::String^ str = gcnew System::String(arr);
-			int i=0;
-			return i;
+			else
+			{
+				return 0;
+			}
 		}
 
 	protected:
 		/// <summary>
 		/// Clean up any resources being used.
 		/// </summary>
+
+		int thisPtr;
+
 		~mainForm()
 		{
 			if (components)
@@ -158,7 +188,11 @@ namespace rush {
 				 {
 					if(this->textBox2->Text->Length)
 					{
-						entryPtr->SendAsyncMessage(this->textBox2->Text,(void*)(pDataQueue));
+						headerStruct* tmp = new headerStruct;
+						tmp->ptr = pDataQueue;
+						tmp->thisptr = thisPtr;
+
+						entryPtr->SendAsyncMessage(this->textBox2->Text,(void*)(tmp));
 						
 						this->textBoxSending->AppendText(this->textBox2->Text);
 						this->textBoxSending->AppendText("\n");

@@ -24,11 +24,12 @@ CommModelBase::~CommModelBase(void)
 
 int CommModelBase::dealer(pIQueueNode ptr)
 {
-	CommandQueue* qPtr = (CommandQueue*)(ptr->getHeader());
+	headerStruct* tmp = (headerStruct*)(ptr->getHeader());
+
+	CommandQueue* qPtr = (CommandQueue*)(tmp->ptr);
 	
 	qPtr->Enqueue_Back( *(AsyncMessage*)(ptr) );
 
-	int i=0;
 	return 0;
 }
 
